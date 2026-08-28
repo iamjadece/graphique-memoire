@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Avez-vous déjà eu l'impression de perdre le contrôle de vos photos (captures d'écran, reposts, partage sans votre accord, diffusion en dehors d'Instagram, etc.)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #f5f5f6;
+    --text-dark: #1a1a1a;
+    --text-grey: #6b6b6b;
+    --font: 'Poppins', 'Segoe UI', sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; background: transparent; font-family: var(--font); -webkit-font-smoothing: antialiased; }
+
+  .chart-wrap{ width: 100%; max-width: 900px; margin: 0 auto; padding: clamp(16px, 3vw, 32px) clamp(12px, 3vw, 32px) clamp(20px, 3vw, 32px); background: var(--bg); }
+  .chart-title{ font-weight: 700; color: var(--text-dark); font-size: clamp(15px, 2.1vw, 22px); line-height: 1.35; margin: 0 0 6px 0; }
+  .chart-subtitle{ font-weight: 400; color: var(--text-grey); font-size: clamp(12px, 1.4vw, 15px); margin: 0 0 clamp(20px, 3vw, 32px) 0; }
+
+  .pie-body{
+    display: flex;
+    align-items: center;
+    gap: clamp(24px, 5vw, 56px);
+    flex-wrap: wrap;
+  }
+
+  .pie-container{
+    position: relative;
+    width: clamp(200px, 32vw, 280px);
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0;
+  }
+  .pie-container svg{ position:absolute; inset:0; width:100%; height:100%; display:block; overflow:visible; }
+
+  .pie-slice{ cursor: pointer; transition: filter 0.15s ease; }
+  .pie-slice:hover{ filter: brightness(1.06); }
+
+  .pie-tooltip{
+    position: absolute;
+    transform: translate(-50%, -50%);
+    background: rgba(26,26,26,0.92);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 5px 10px;
+    border-radius: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 5;
+  }
+  .pie-tooltip.visible{ opacity: 1; }
+
+  .legend{
+    display: flex;
+    flex-direction: column;
+    gap: clamp(10px, 1.6vw, 16px);
+    min-width: 180px;
+  }
+  .legend-item{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: clamp(13px, 1.4vw, 15px);
+    color: var(--text-dark);
+    line-height: 1.3;
+  }
+  .legend-dot{
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: inset 1px 1px 3px rgba(0,0,0,0.15);
+  }
+</style>
+</head>
+<body>
+
+<div class="chart-wrap">
+  <h2 class="chart-title">Avez-vous déjà eu l'impression de perdre le contrôle de vos photos (captures d'écran, reposts, partage sans votre accord, diffusion en dehors d'Instagram, etc.)</h2>
+  <p class="chart-subtitle">12 réponses</p>
+
+  <div class="pie-body">
+    <div class="pie-container" id="pieContainer">
+      <svg viewBox="0 0 260 260" id="pieSvg">
+        <defs>
+          <clipPath id="revealClip">
+            <path id="revealPath" d="M130,130 L130,20 Z"></path>
+          </clipPath>
+          <radialGradient id="glassSheen" cx="32%" cy="28%" r="75%">
+            <stop offset="0%" stop-color="#ffffff" stop-opacity="0.55"></stop>
+            <stop offset="45%" stop-color="#ffffff" stop-opacity="0.12"></stop>
+            <stop offset="100%" stop-color="#ffffff" stop-opacity="0"></stop>
+          </radialGradient>
+        </defs>
+        <g id="slicesGroup" clip-path="url(#revealClip)"></g>
+        <circle cx="130" cy="130" r="110" fill="url(#glassSheen)" style="pointer-events:none; mix-blend-mode: screen;"></circle>
+      </svg>
+    </div>
+    <div class="legend" id="legend"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const total = 12;
+  const data = [{"label": "Oui, plusieurs fois", "count": 1, "pct": "8,3%", "color": "#409F14"}, {"label": "Oui, une fois", "count": 3, "pct": "25%", "color": "#BF6618"}, {"label": "Non", "count": 8, "pct": "66,7%", "color": "#BF18A0"}, {"label": "Je ne sais pas", "count": 0, "pct": "0%", "color": "#5E18BF"}]; // [{label, count, pct, color}]
+
+  const cx = 130, cy = 130, r = 110;
+
+  function polar(cxv, cyv, rad, deg){
+    const rad2 = (deg - 0) * Math.PI / 180;
+    return {
+      x: cxv + rad * Math.sin(rad2),
+      y: cyv - rad * Math.cos(rad2)
+    };
+  }
+
+  function arcPath(cxv, cyv, rad, startDeg, endDeg){
+    let s = startDeg, e = endDeg;
+    if (e - s >= 359.999) e = s + 359.999;
+    const p1 = polar(cxv, cyv, rad, s);
+    const p2 = polar(cxv, cyv, rad, e);
+    const largeArc = (e - s) > 180 ? 1 : 0;
+    return 'M ' + cxv + ',' + cyv + ' L ' + p1.x + ',' + p1.y + ' A ' + rad + ',' + rad + ' 0 ' + largeArc + ' 1 ' + p2.x + ',' + p2.y + ' Z';
+  }
+
+  function hexToRgb(hex){
+    const h = hex.replace('#','');
+    const bigint = parseInt(h, 16);
+    return [(bigint>>16)&255, (bigint>>8)&255, bigint&255];
+  }
+
+  const svgNS = 'http://www.w3.org/2000/svg';
+  const slicesGroup = document.getElementById('slicesGroup');
+  const legend = document.getElementById('legend');
+  const pieContainer = document.getElementById('pieContainer');
+  const revealPath = document.getElementById('revealPath');
+
+  let cursor = 0;
+  const slices = [];
+
+  data.forEach(function(item){
+    const legendItem = document.createElement('div');
+    legendItem.className = 'legend-item';
+
+    const dot = document.createElement('div');
+    dot.className = 'legend-dot';
+    const [lr,lg,lb] = hexToRgb(item.color);
+    dot.style.background = 'rgba(' + lr + ',' + lg + ',' + lb + ',0.55)';
+
+    const label = document.createElement('span');
+    label.textContent = item.label;
+
+    legendItem.appendChild(dot);
+    legendItem.appendChild(label);
+    legend.appendChild(legendItem);
+
+    if (item.count > 0){
+      const startDeg = (cursor / total) * 360;
+      const endDeg = ((cursor + item.count) / total) * 360;
+      cursor += item.count;
+
+      const path = document.createElementNS(svgNS, 'path');
+      path.setAttribute('d', arcPath(cx, cy, r, startDeg, endDeg));
+      const [rr,gg,bb] = hexToRgb(item.color);
+      path.setAttribute('fill', 'rgba(' + rr + ',' + gg + ',' + bb + ',0.5)');
+      path.setAttribute('stroke', '#ffffff');
+      path.setAttribute('stroke-width', '1.5');
+      path.setAttribute('stroke-opacity', '0.7');
+      path.classList.add('pie-slice');
+      slicesGroup.appendChild(path);
+
+      const midDeg = (startDeg + endDeg) / 2;
+      const pt = polar(cx, cy, r * 0.62, midDeg);
+      const tooltip = document.createElement('div');
+      tooltip.className = 'pie-tooltip';
+      tooltip.textContent = item.pct;
+      tooltip.style.left = (pt.x / 260 * 100) + '%';
+      tooltip.style.top = (pt.y / 260 * 100) + '%';
+      pieContainer.appendChild(tooltip);
+
+      path.addEventListener('mouseenter', function(){ tooltip.classList.add('visible'); });
+      path.addEventListener('mouseleave', function(){ tooltip.classList.remove('visible'); });
+
+      slices.push(path);
+    }
+  });
+
+  revealPath.setAttribute('d', arcPath(cx, cy, r + 20, 0, 0.001));
+
+  function easeOutCubic(t){ return 1 - Math.pow(1 - t, 3); }
+
+  function animateReveal(){
+    const duration = 1400;
+    const start = performance.now();
+    function frame(now){
+      const t = Math.min(1, (now - start) / duration);
+      const eased = easeOutCubic(t);
+      const progress = eased * 360;
+      revealPath.setAttribute('d', arcPath(cx, cy, r + 20, 0, Math.max(0.001, progress)));
+      if (t < 1) requestAnimationFrame(frame);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  const observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (entry.isIntersecting){
+        animateReveal();
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.35 });
+
+  observer.observe(pieContainer);
+})();
+</script>
+
+</body>
+</html>

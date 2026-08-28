@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Graphique animé</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #f5f5f6;
+    --text-dark: #1a1a1a;
+    --text-grey: #6b6b6b;
+    --grid-line: #d9d9dc;
+    --font: 'Poppins', 'Segoe UI', sans-serif;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0;
+    padding:0;
+    background: transparent;
+    font-family: var(--font);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .chart-wrap{
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    padding: clamp(16px, 3vw, 32px) clamp(12px, 3vw, 32px) clamp(20px, 3vw, 32px);
+    background: var(--bg);
+  }
+
+  .chart-title{
+    font-weight: 700;
+    color: var(--text-dark);
+    font-size: clamp(15px, 2.1vw, 22px);
+    line-height: 1.35;
+    margin: 0 0 6px 0;
+  }
+
+  .chart-subtitle{
+    font-weight: 400;
+    color: var(--text-grey);
+    font-size: clamp(12px, 1.4vw, 15px);
+    margin: 0 0 clamp(16px, 3vw, 28px) 0;
+  }
+
+  .chart-area{
+    position: relative;
+    display: flex;
+  }
+
+  /* ---------- Y AXIS ---------- */
+  .y-axis{
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: var(--plot-height, 320px);
+    padding-right: 10px;
+    text-align: right;
+  }
+
+  .y-axis span{
+    font-size: clamp(11px, 1.2vw, 14px);
+    color: var(--text-grey);
+    transform: translateY(-50%);
+  }
+  .y-axis span:first-child{ transform: translateY(-20%); }
+  .y-axis span:last-child{ transform: translateY(60%); }
+
+  /* ---------- PLOT ---------- */
+  .plot{
+    position: relative;
+    flex: 1;
+    height: var(--plot-height, 320px);
+  }
+
+  .gridlines{
+    position: absolute;
+    inset: 0;
+  }
+
+  .gridline{
+    position: absolute;
+    left: 0;
+    right: 0;
+    border-top: 1px solid var(--grid-line);
+  }
+
+  .bars{
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-around;
+    padding: 0 clamp(4px, 2vw, 24px);
+  }
+
+  .bar-col{
+    position: relative;
+    height: 100%;
+    width: clamp(36px, 12%, 90px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+  }
+
+  .bar{
+    position: relative;
+    width: 100%;
+    height: 0%; /* animated via JS to --target-height */
+    background: var(--bar-fill);
+    backdrop-filter: blur(6px) saturate(160%);
+    -webkit-backdrop-filter: blur(6px) saturate(160%);
+    box-shadow:
+      inset 4px 4px 10px 0 var(--bar-inner-shadow),
+      inset -3px -3px 8px 0 rgba(255,255,255,0.45);
+    border-top: 1px solid rgba(255,255,255,0.55);
+    transition: height 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow: visible;
+  }
+
+  .bar::before{
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(150deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0) 60%);
+    pointer-events: none;
+  }
+
+  .chart-area.in-view .bar{
+    height: var(--target-height);
+  }
+
+  /* ---------- TOOLTIP ---------- */
+  .bar-tooltip{
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translate(-50%, 6px);
+    background: rgba(26,26,26,0.92);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 5px 10px;
+    border-radius: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    z-index: 5;
+  }
+
+  .bar-tooltip::after{
+    content:"";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 5px solid transparent;
+    border-top-color: rgba(26,26,26,0.92);
+  }
+
+  .bar-col:hover .bar-tooltip{
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+
+  .bar-col:hover .bar{
+    filter: brightness(1.04);
+  }
+
+  /* ---------- X AXIS (category numbers) ---------- */
+  .x-axis{
+    display: flex;
+    justify-content: space-around;
+    padding: 10px clamp(4px, 2vw, 24px) 0;
+  }
+
+  .x-axis span{
+    width: clamp(36px, 12%, 90px);
+    text-align: center;
+    font-size: clamp(12px, 1.4vw, 15px);
+    color: var(--text-dark);
+    font-weight: 400;
+  }
+
+  @media (max-width: 480px){
+    .y-axis{ padding-right: 6px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="chart-wrap">
+  <!-- ============================================================
+       Pour réutiliser ce composant pour un autre graphique de ton
+       mémoire : duplique le bloc <div class="chart-wrap">...</div>
+       et modifie uniquement le contenu texte + le tableau "bars"
+       dans le <script> plus bas (un bloc JS par graphique).
+       ============================================================ -->
+  <h2 class="chart-title">Dans quelle mesure tu es d'accord avec l'affirmation suivante&nbsp;: « Publier des photos de moi sur Instagram me permet de mieux contrôler l'image que les autres ont de moi. »</h2>
+  <p class="chart-subtitle">12 réponses</p>
+
+  <div class="chart-area" id="chartArea" style="--plot-height:320px;">
+    <div class="y-axis" id="yAxis"></div>
+    <div class="plot">
+      <div class="gridlines" id="gridlines"></div>
+      <div class="bars" id="bars"></div>
+    </div>
+  </div>
+  <div class="x-axis" id="xAxis"></div>
+</div>
+
+<script>
+(function(){
+
+  // ================= CONFIGURATION DU GRAPHIQUE =================
+  // maxValue = valeur correspondant à la ligne de quadrillage la plus haute
+  const maxValue = 6;
+  // ticks affichés sur l'axe Y, du plus grand (haut) au plus petit (bas)
+  const yTicks = [6, 4, 2, 0];
+
+  // Une entrée par colonne : value = hauteur, pct = texte affiché au survol,
+  // color = couleur hex de la barre (laisser color:null pour une barre à 0
+  // qui ne doit afficher aucun remplissage), label = numéro affiché sous l'axe X
+  const bars = [
+    { label: "1", value: 1, pct: "1 (8,3%)",  color: "#409F14" },
+    { label: "2", value: 0, pct: "0 (0%)",    color: "#409F14" },
+    { label: "3", value: 5, pct: "5 (41,7%)", color: "#BF18A0" },
+    { label: "4", value: 4, pct: "4 (33,3%)", color: "#5E18BF" },
+    { label: "5", value: 2, pct: "2 (16,7%)", color: "#2E97E5" }
+  ];
+  // =================================================================
+
+  function hexToRgb(hex){
+    const h = hex.replace('#','');
+    const bigint = parseInt(h, 16);
+    return [(bigint>>16)&255, (bigint>>8)&255, bigint&255];
+  }
+
+  const yAxis = document.getElementById('yAxis');
+  const gridlines = document.getElementById('gridlines');
+  const barsWrap = document.getElementById('bars');
+  const xAxis = document.getElementById('xAxis');
+  const chartArea = document.getElementById('chartArea');
+
+  // --- Axe Y + lignes de quadrillage ---
+  yTicks.forEach(function(tick){
+    const label = document.createElement('span');
+    label.textContent = tick;
+    yAxis.appendChild(label);
+
+    const line = document.createElement('div');
+    line.className = 'gridline';
+    const posFromBottom = (tick / maxValue) * 100;
+    line.style.bottom = posFromBottom + '%';
+    gridlines.appendChild(line);
+  });
+
+  // --- Colonnes ---
+  bars.forEach(function(bar, i){
+    const col = document.createElement('div');
+    col.className = 'bar-col';
+
+    const barEl = document.createElement('div');
+    barEl.className = 'bar';
+
+    const targetHeight = (bar.value / maxValue) * 100;
+    barEl.style.setProperty('--target-height', targetHeight + '%');
+    barEl.style.transitionDelay = (i * 90) + 'ms';
+
+    if (bar.color && bar.value > 0){
+      const [r,g,b] = hexToRgb(bar.color);
+      barEl.style.setProperty('--bar-fill', 'rgba(' + r + ',' + g + ',' + b + ',0.22)');
+      barEl.style.setProperty('--bar-inner-shadow', 'rgba(' + r + ',' + g + ',' + b + ',0.28)');
+    } else {
+      barEl.style.setProperty('--bar-fill', 'transparent');
+      barEl.style.setProperty('--bar-inner-shadow', 'transparent');
+      barEl.style.boxShadow = 'none';
+    }
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'bar-tooltip';
+    tooltip.textContent = bar.pct;
+
+    barEl.appendChild(tooltip);
+    col.appendChild(barEl);
+    barsWrap.appendChild(col);
+
+    const xLabel = document.createElement('span');
+    xLabel.textContent = bar.label;
+    xAxis.appendChild(xLabel);
+  });
+
+  // --- Animation au scroll ---
+  const observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (entry.isIntersecting){
+        chartArea.classList.add('in-view');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.4 });
+
+  observer.observe(chartArea);
+
+})();
+</script>
+
+</body>
+</html>

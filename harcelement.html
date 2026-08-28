@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Si oui, le harcèlement portait principalement sur : (Plusieurs réponses possibles)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #f5f5f6;
+    --text-dark: #1a1a1a;
+    --text-grey: #6b6b6b;
+    --grid-line: #d9d9dc;
+    --grid-line-strong: #b9b9bd;
+    --font: 'Poppins', 'Segoe UI', sans-serif;
+  }
+  *{ box-sizing: border-box; }
+  html, body{ margin:0; padding:0; background: transparent; font-family: var(--font); -webkit-font-smoothing: antialiased; }
+
+  .chart-wrap{ width: 100%; max-width: 900px; margin: 0 auto; padding: clamp(16px, 3vw, 32px) clamp(12px, 3vw, 32px) clamp(20px, 3vw, 32px); background: var(--bg); }
+  .chart-title{ font-weight: 700; color: var(--text-dark); font-size: clamp(15px, 2.1vw, 22px); line-height: 1.35; margin: 0 0 6px 0; }
+  .chart-subtitle{ font-weight: 400; color: var(--text-grey); font-size: clamp(12px, 1.4vw, 15px); margin: 0 0 clamp(18px, 3vw, 30px) 0; }
+
+  .hbar-rows{ display: flex; flex-direction: column; }
+
+  .hbar-row{ display: flex; align-items: stretch; }
+  .hbar-row + .hbar-row{ margin-top: clamp(10px, 2vw, 18px); }
+
+  .hbar-label{
+    width: clamp(130px, 33%, 260px);
+    flex-shrink: 0;
+    padding-right: clamp(10px, 2vw, 20px);
+    display: flex;
+    align-items: center;
+    font-size: clamp(12px, 1.25vw, 14.5px);
+    color: var(--text-dark);
+    line-height: 1.35;
+  }
+
+  .hbar-track{
+    position: relative;
+    flex: 1;
+    min-height: clamp(38px, 6vw, 50px);
+    display: flex;
+    align-items: center;
+    background-repeat: no-repeat;
+  }
+
+  .hbar-fill{
+    position: relative;
+    height: clamp(22px, 3.6vw, 30px);
+    width: 0%;
+    background: var(--bar-fill);
+    backdrop-filter: blur(6px) saturate(160%);
+    -webkit-backdrop-filter: blur(6px) saturate(160%);
+    box-shadow:
+      inset 4px 4px 10px 0 var(--bar-inner-shadow),
+      inset -3px -3px 8px 0 rgba(255,255,255,0.45);
+    border-right: 1px solid rgba(255,255,255,0.55);
+    transition: width 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow: visible;
+  }
+  .hbar-fill::before{
+    content:"";
+    position:absolute; inset:0;
+    background: linear-gradient(150deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0) 60%);
+    pointer-events:none;
+  }
+  .chart-area.in-view .hbar-fill{ width: var(--target-width); }
+
+  .hbar-tooltip{
+    position: absolute;
+    top: 50%;
+    left: 100%;
+    transform: translate(8px, -50%);
+    background: rgba(26,26,26,0.92);
+    color: #fff;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    padding: 5px 10px;
+    border-radius: 6px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+    z-index: 5;
+  }
+  .hbar-tooltip::after{
+    content:"";
+    position:absolute;
+    right:100%;
+    top:50%;
+    transform: translateY(-50%);
+    border: 5px solid transparent;
+    border-right-color: rgba(26,26,26,0.92);
+  }
+  .hbar-row:hover .hbar-tooltip{ opacity: 1; }
+  .hbar-row:hover .hbar-fill{ filter: brightness(1.04); }
+
+  .hbar-xaxis-wrap{ display:flex; margin-top: clamp(8px, 1.6vw, 14px); }
+  .hbar-xaxis-spacer{ width: clamp(130px, 33%, 260px); flex-shrink:0; }
+  .hbar-xaxis{ position: relative; flex: 1; height: 18px; }
+  .hbar-xaxis span{
+    position:absolute;
+    top:0;
+    transform: translateX(-50%);
+    font-size: clamp(11px, 1.2vw, 14px);
+    color: var(--text-grey);
+    white-space: nowrap;
+  }
+  .hbar-xaxis span:first-child{ transform: translateX(0); }
+  .hbar-xaxis span:last-child{ transform: translateX(-100%); }
+</style>
+</head>
+<body>
+
+<div class="chart-wrap">
+  <h2 class="chart-title">Si oui, le harcèlement portait principalement sur&nbsp;: (Plusieurs réponses possibles)</h2>
+  <p class="chart-subtitle">4 réponses</p>
+
+  <div class="chart-area" id="chartArea">
+    <div class="hbar-rows" id="hbarRows"></div>
+    <div class="hbar-xaxis-wrap">
+      <div class="hbar-xaxis-spacer"></div>
+      <div class="hbar-xaxis" id="hbarXAxis"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const maxValue = 2;
+  // ticks: array of {value, label} — value is used for positioning (%), label is the displayed text
+  const ticks = [{"value": 0, "label": "0"}, {"value": 1, "label": "1"}, {"value": 2, "label": "2"}];
+  const bars = [{"label": "Votre apparence physique (corps, visage, cheveux, etc.)", "value": 2, "pct": "2 (50%)", "color": "#409F14"}, {"label": "Vos origines / votre couleur de peau", "value": 2, "pct": "2 (50%)", "color": "#BF6618"}, {"label": "Votre religion ou signes religieux visibles", "value": 1, "pct": "1 (25%)", "color": "#BF18A0"}, {"label": "Votre orientation sexuelle ou identité de genre", "value": 0, "pct": "0 (0%)", "color": null}, {"label": "Votre façon de vous habiller", "value": 1, "pct": "1 (25%)", "color": "#5E18BF"}, {"label": "Autre : Harceleur cherchant à me contacter pour avoir un rapport", "value": 1, "pct": "1 (25%)", "color": "#2E97E5"}]; // {label, value, pct, color (or null)}
+
+  function hexToRgb(hex){
+    const h = hex.replace('#','');
+    const bigint = parseInt(h, 16);
+    return [(bigint>>16)&255, (bigint>>8)&255, bigint&255];
+  }
+
+  function gridBackground(){
+    const layers = ticks.map(function(t){
+      const pos = (t.value / maxValue) * 100;
+      const color = (t.value === 0) ? 'var(--grid-line-strong)' : 'var(--grid-line)';
+      return 'linear-gradient(to right, transparent calc(' + pos + '% - 1px), ' + color + ' calc(' + pos + '% - 1px), ' + color + ' ' + pos + '%, transparent ' + pos + '%)';
+    });
+    return layers.join(', ');
+  }
+
+  const rowsWrap = document.getElementById('hbarRows');
+  const xAxis = document.getElementById('hbarXAxis');
+  const chartArea = document.getElementById('chartArea');
+  const bg = gridBackground();
+
+  bars.forEach(function(bar, i){
+    const row = document.createElement('div');
+    row.className = 'hbar-row';
+
+    const label = document.createElement('div');
+    label.className = 'hbar-label';
+    label.textContent = bar.label;
+
+    const track = document.createElement('div');
+    track.className = 'hbar-track';
+    track.style.backgroundImage = bg;
+
+    const fill = document.createElement('div');
+    fill.className = 'hbar-fill';
+
+    const targetWidth = (bar.value / maxValue) * 100;
+    fill.style.setProperty('--target-width', targetWidth + '%');
+    fill.style.transitionDelay = (i * 90) + 'ms';
+
+    if (bar.color && bar.value > 0){
+      const [r,g,b] = hexToRgb(bar.color);
+      fill.style.setProperty('--bar-fill', 'rgba(' + r + ',' + g + ',' + b + ',0.28)');
+      fill.style.setProperty('--bar-inner-shadow', 'rgba(' + r + ',' + g + ',' + b + ',0.30)');
+    } else {
+      fill.style.setProperty('--bar-fill', 'transparent');
+      fill.style.setProperty('--bar-inner-shadow', 'transparent');
+      fill.style.boxShadow = 'none';
+      fill.style.borderRight = 'none';
+    }
+
+    const tooltip = document.createElement('div');
+    tooltip.className = 'hbar-tooltip';
+    tooltip.textContent = bar.pct;
+
+    fill.appendChild(tooltip);
+    track.appendChild(fill);
+    row.appendChild(label);
+    row.appendChild(track);
+    rowsWrap.appendChild(row);
+  });
+
+  ticks.forEach(function(t){
+    const span = document.createElement('span');
+    span.textContent = t.label;
+    span.style.left = ((t.value / maxValue) * 100) + '%';
+    xAxis.appendChild(span);
+  });
+
+  const observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (entry.isIntersecting){
+        chartArea.classList.add('in-view');
+        observer.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.3 });
+
+  observer.observe(chartArea);
+})();
+</script>
+
+</body>
+</html>
