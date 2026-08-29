@@ -8,10 +8,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg: #f5f5f6;
-    --text-dark: #1a1a1a;
-    --text-grey: #6b6b6b;
-    --grid-line: #d9d9dc;
+    --bg: #f8f8f8;
+    --text-dark: rgba(30, 30, 30);
+    --text-grey: rgba(30, 30, 30, 0.7);
+    --grid-line: #B8B8C5;
     --font: 'Poppins', 'Segoe UI', sans-serif;
   }
   *{ box-sizing: border-box; }
@@ -32,8 +32,8 @@
   .bar{ position: relative; width: 100%; height: 0%; background: var(--bar-fill); backdrop-filter: blur(6px) saturate(160%); -webkit-backdrop-filter: blur(6px) saturate(160%); box-shadow: inset 4px 4px 10px 0 var(--bar-inner-shadow), inset -3px -3px 8px 0 rgba(255,255,255,0.45); border-top: 1px solid rgba(255,255,255,0.55); transition: height 1.1s cubic-bezier(0.22, 1, 0.36, 1); overflow: visible; }
   .bar::before{ content: ""; position: absolute; inset: 0; background: linear-gradient(150deg, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.05) 45%, rgba(255,255,255,0) 60%); pointer-events: none; }
   .chart-area.in-view .bar{ height: var(--target-height); }
-  .bar-tooltip{ position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translate(-50%, 6px); background: rgba(26,26,26,0.92); color: #fff; font-size: 13px; font-weight: 600; white-space: nowrap; padding: 5px 10px; border-radius: 6px; opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; z-index: 5; }
-  .bar-tooltip::after{ content:""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: rgba(26,26,26,0.92); }
+  .bar-tooltip{ position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translate(-50%, 6px); background: rgba(30,30,30,0.92); color: #f8f8f8; font-size: 13px; font-weight: 600; white-space: nowrap; padding: 5px 10px; border-radius: 6px; opacity: 0; pointer-events: none; transition: opacity 0.2s ease, transform 0.2s ease; z-index: 5; }
+  .bar-tooltip::after{ content:""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: rgba(30,30,30,0.92); }
   .bar-col:hover .bar-tooltip{ opacity: 1; transform: translate(-50%, 0); }
   .bar-col:hover .bar{ filter: brightness(1.04); }
   .x-axis{ display: flex; justify-content: space-around; padding: 10px clamp(4px, 2vw, 24px) 0; }
